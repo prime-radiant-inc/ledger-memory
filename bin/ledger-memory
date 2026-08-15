@@ -24,7 +24,7 @@ LEDGER = os.environ.get("LEDGER_BIN", "ledger")
 AUTHOR = os.environ.get("LEDGER_MEMORY_AS") or (
     f"session-{os.environ['CLAUDE_CODE_SESSION_ID'][:8]}"
     if os.environ.get("CLAUDE_CODE_SESSION_ID") else "memory")
-NAG_LINES = 50
+NAG_LINES = 60
 
 
 def die(msg, code=1):

@@ -79,6 +79,12 @@ class TestArchive(WrapperTest):
             self.assertNotIn(f"stale-{i}", md)
         self.assertIn("keeper", md)
 
+    def test_bulk_archive_validates_before_writing(self):
+        self.wrap("save", "a", "-m", "x")
+        p = self.wrap("archive", "a", "nonesuch", expect=4)
+        self.assertIn("nonesuch", p.stderr)
+        self.assertIn("a", self.projection())   # nothing was archived
+
 
 class TestSanitization(WrapperTest):
     def test_hook_line_injection_is_inert(self):
@@ -126,7 +132,7 @@ class TestSelfHeal(WrapperTest):
 
 class TestNag(WrapperTest):
     def test_nag_names_candidates_as_judgment_call(self):
-        for i in range(40):
+        for i in range(45):
             self.wrap("save", f"fact-{i:02d}", "-m", f"filler fact {i}")
         md = self.projection()
         self.assertIn("curation due", md)
