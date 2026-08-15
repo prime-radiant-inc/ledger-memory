@@ -23,6 +23,27 @@ class TestSaveAndRender(WrapperTest):
         out = self.wrap("save", "k", "-m", "same text").stdout
         self.assertIn('"saved"', out)            # no idempotency-key dedupe (spec rev 4)
 
+    def test_author_fallback_chain(self):
+        # strip both LEDGER_MEMORY_AS and any ambient CLAUDE_CODE_SESSION_ID
+        # (this test process itself runs under Claude Code, so the latter is
+        # normally set) so the fallback chain is exercised deliberately.
+        no_as = {k: v for k, v in self.env.items()
+                 if k not in ("LEDGER_MEMORY_AS", "CLAUDE_CODE_SESSION_ID")}
+        with_session = dict(no_as, CLAUDE_CODE_SESSION_ID="abcdef1234567890")
+        self.wrap("save", "s", "-m", "x", env=with_session)
+        self.assertIn("by session-abcdef12", self.projection())
+
+        self.wrap("save", "n", "-m", "y", env=no_as)
+        self.assertIn("by memory", self.projection())
+
+    def test_sanitize_caps_long_message(self):
+        self.wrap("save", "long", "-m", "x" * 400)
+        md = self.projection()
+        lines = [l for l in md.splitlines() if "**long**" in l]
+        self.assertEqual(len(lines), 1)
+        hook = lines[0].split("— ", 1)[1].split(" (", 1)[0]
+        self.assertLessEqual(len(hook), 300)
+
 
 class TestRetractionAndScars(WrapperTest):
     def test_retract_renders_vaccine(self):
@@ -66,6 +87,13 @@ class TestEvidenceCarry(WrapperTest):
         self.wrap("save", "f", "-m", "claim", "--evidence", "file:x.md")
         self.wrap("save", "f", "-m", "claim v2", "--no-evidence")
         self.assertNotIn("file:x.md", self.projection().split("## Facts")[1])
+
+    def test_evidence_carries_through_archive(self):
+        self.wrap("save", "f", "-m", "claim", "--evidence", "file:x.md")
+        self.wrap("archive", "f")
+        doc = json.loads(self.wrap("drill", "f").stdout)
+        archived = [e for e in doc["history"] if e["status"] == "archived"][0]
+        self.assertEqual(archived["evidence"], ["file:x.md"])
 
 
 class TestArchive(WrapperTest):

@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
-"""ledger-memory — SPIKE (throwaway). The only write path for agent memory.
+"""ledger-memory — the only write path for agent memory (ledger-backed).
 
 Subcommands:
   save <name> -m "<hook>" [--evidence REF] [--no-evidence] [--body FILE]
   retract <name> -m "wrong because <why>"
-  archive <name> [-m "<why>"]
+  archive <name> [<name>...] [-m "<why>"]
   render
   drill <name>
 
-Memory dir comes from $LEDGER_MEMORY_DIR. Ledger binary: $LEDGER_BIN or PATH.
+Env: LEDGER_MEMORY_DIR (required) names the memory directory.
+     LEDGER_BIN (default: ledger) names the ledger binary.
+     LEDGER_MEMORY_AS (default: session-<CLAUDE_CODE_SESSION_ID[:8]>, else
+     memory) names the author recorded on writes.
 Every mutating subcommand ends by re-rendering MEMORY.md (atomic).
 """
 import json
