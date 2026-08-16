@@ -13,6 +13,7 @@ Env: LEDGER_MEMORY_DIR (required) names the memory directory.
      LEDGER_MEMORY_AS (default: session-<CLAUDE_CODE_SESSION_ID[:8]>, else
      memory) names the author recorded on writes.
 Every mutating subcommand ends by re-rendering MEMORY.md (atomic).
+Timestamps in drill output are UTC.
 """
 import json
 import os
@@ -199,6 +200,9 @@ def render():
         f"{wrapper} archive <kebab-name>",
         f"{wrapper} drill <kebab-name>     # full detail for one memory",
         "```",
+        "If the wrapper path above doesn't exist (plugin updated), use the newest "
+        "version dir under ~/.claude/plugins/cache/ledger-memory-market/"
+        "ledger-memory/*/bin/ledger-memory",
         "A save is not finished until this file has re-rendered (the wrapper does it).",
         "If `ledger` or the wrapper is missing or erroring: tell the user and STOP.",
         "Install ledger: curl -fsSL https://github.com/prime-radiant-inc/ledger/"
@@ -322,15 +326,24 @@ def cmd_drill(name):
     _, rows = spine_rows()
     row = next((r for r in rows if r.get("key") == name), None)
     if not row:
-        die(f"no memory named '{name}'", 4)
+        msg = f"no memory named '{name}'"
+        if PRESERVED:
+            # No JSON is emitted on this path, so the rename must be acknowledged
+            # here or it's silently lost (this fires when bootstrap just created
+            # the store, so it's always empty and this die is unavoidable).
+            msg += f" (note: preserved pre-existing MEMORY.md as {PRESERVED})"
+        die(msg, 4)
     events = [e for e in chain_events() if e.get("key") == name and e.get("type") == "set"]
     _, notes_doc, _ = run("notes", "-k", "body", "--key", name, "--latest", ok_codes=(0, 4))
     body = ((notes_doc or {}).get("notes") or [{}])[-1].get("text")
-    print(json.dumps({"ok": True, "memory": name, "state": row,
-                      "history": [{"ts": e.get("ts"), "status": e["fields"]["status"],
-                                   "note": e.get("text"), "by": e.get("author"),
-                                   "evidence": e.get("evidence")} for e in events],
-                      "body": body}, indent=1))
+    out = {"ok": True, "memory": name, "state": row,
+           "history": [{"ts": e.get("ts"), "status": e["fields"]["status"],
+                        "note": e.get("text"), "by": e.get("author"),
+                        "evidence": e.get("evidence")} for e in events],
+           "body": body}
+    if PRESERVED:
+        out["preserved"] = PRESERVED
+    print(json.dumps(out, indent=1))
 
 
 def main():

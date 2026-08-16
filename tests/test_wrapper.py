@@ -1,9 +1,28 @@
+import importlib.machinery
+import importlib.util
 import json
 import os
 import re
 import subprocess
+import unittest
 
 from helpers import WrapperTest, WRAPPER
+
+REPO_ROOT = os.path.join(os.path.dirname(__file__), "..")
+
+
+class TestUTCDocumentation(unittest.TestCase):
+    def test_docstring_documents_drill_timestamps_as_utc(self):
+        loader = importlib.machinery.SourceFileLoader("ledger_memory_wrapper", WRAPPER)
+        spec = importlib.util.spec_from_loader(loader.name, loader)
+        module = importlib.util.module_from_spec(spec)
+        loader.exec_module(module)
+        self.assertIn("Timestamps in drill output are UTC.", module.__doc__)
+
+    def test_readme_documents_event_timestamps_as_utc(self):
+        with open(os.path.join(REPO_ROOT, "README.md")) as f:
+            readme = f.read()
+        self.assertIn("All event timestamps are UTC.", readme)
 
 
 class TestSaveAndRender(WrapperTest):
@@ -168,6 +187,23 @@ class TestPreLedgerPreservation(WrapperTest):
         self.assertIn("GENERATED from the memory ledger", self.projection())
 
 
+class TestPreLedgerPreservationOnDrill(WrapperTest):
+    def test_drill_reports_preservation_in_die_message_when_store_absent(self):
+        # Preservation fires inside bootstrap's _create(), which only runs when
+        # the store doesn't exist yet. A freshly created store has no facts, so
+        # drill's lookup always misses and dies -- there's no JSON success path
+        # to carry the note in this scenario, so it must show up in the error.
+        with open(os.path.join(self.memdir, "MEMORY.md"), "w") as f:
+            f.write("# Hand-written notes\n\nsome index a human wrote by hand\n")
+        p = self.wrap("drill", "anything", expect=4)
+        self.assertIn("no memory named", p.stderr)
+        self.assertIn("preserved", p.stderr)
+        self.assertIn("MEMORY.md.pre-ledger", p.stderr)
+        with open(os.path.join(self.memdir, "MEMORY.md.pre-ledger")) as f:
+            preserved = f.read()
+        self.assertIn("some index a human wrote by hand", preserved)
+
+
 class TestSelfHeal(WrapperTest):
     def test_stale_projection_heals_on_next_render(self):
         self.wrap("save", "a", "-m", "one")
@@ -189,6 +225,16 @@ class TestNag(WrapperTest):
         md = self.projection()
         self.assertIn("curation due", md)
         self.assertIn("judgment call, not a quota", md)
+
+
+class TestHeaderSurvivesPluginUpdates(WrapperTest):
+    def test_header_includes_stale_path_fallback_hint(self):
+        self.wrap("render")
+        self.assertIn(
+            "If the wrapper path above doesn't exist (plugin updated), use the "
+            "newest version dir under "
+            "~/.claude/plugins/cache/ledger-memory-market/ledger-memory/*/bin/ledger-memory",
+            self.projection())
 
 
 class TestDrill(WrapperTest):

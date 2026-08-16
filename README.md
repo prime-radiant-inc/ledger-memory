@@ -61,6 +61,8 @@ directory:
   MEMORY.md        # generated projection — never hand-edited
 ```
 
+All event timestamps are UTC.
+
 `MEMORY.md` is composed fresh from the store on every session start and
 after every write; it's what the harness actually loads into an agent's
 context, not the store itself.
