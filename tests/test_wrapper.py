@@ -44,12 +44,17 @@ class TestSaveAndRender(WrapperTest):
         hook = lines[0].split("— ", 1)[1].split(" (", 1)[0]
         self.assertLessEqual(len(hook), 300)
 
+    def test_dangling_flag_value_dies_with_usage_not_traceback(self):
+        p = self.wrap("save", "k", "-m", expect=4)
+        self.assertIn("usage", p.stderr)
+
 
 class TestRetractionAndScars(WrapperTest):
     def test_retract_renders_vaccine(self):
         self.wrap("save", "bad-fact", "-m", "the build uses make")
         self.wrap("retract", "bad-fact", "-m", "wrong because it uses go build")
         md = self.projection()
+        self.assertIn('"the build uses make"', md)   # the retracted claim itself
         self.assertIn("wrong because it uses go build", md)
         self.assertIn("Retracted", md)
 
@@ -74,6 +79,13 @@ class TestRetractionAndScars(WrapperTest):
         self.wrap("retract", "f", "-m", "wrong because reasons", env=other)
         out = self.wrap("save", "f", "-m", "v1 again").stdout
         self.assertIn("retract", out)               # stale-reassert race: warning present
+
+    def test_retract_no_evidence_drops_carried_ref(self):
+        self.wrap("save", "f", "-m", "claim", "--evidence", "file:x.md")
+        self.wrap("retract", "f", "-m", "wrong because y", "--no-evidence")
+        doc = json.loads(self.wrap("drill", "f").stdout)
+        retracted_event = [e for e in doc["history"] if e["status"] == "retracted"][0]
+        self.assertIsNone(retracted_event["evidence"])
 
 
 class TestEvidenceCarry(WrapperTest):
@@ -142,6 +154,18 @@ class TestBootstrapStates(WrapperTest):
                        cwd=self.memdir, capture_output=True, check=True)
         self.wrap("save", "x", "-m", "first fact")   # no MEMORY.md head recorded: safe to create
         self.assertIn("first fact", self.projection())
+
+
+class TestPreLedgerPreservation(WrapperTest):
+    def test_render_preserves_hand_written_memory_md(self):
+        with open(os.path.join(self.memdir, "MEMORY.md"), "w") as f:
+            f.write("# Hand-written notes\n\nsome index a human wrote by hand\n")
+        p = self.wrap("render")
+        self.assertIn('"preserved": "MEMORY.md.pre-ledger"', p.stdout)
+        with open(os.path.join(self.memdir, "MEMORY.md.pre-ledger")) as f:
+            preserved = f.read()
+        self.assertIn("some index a human wrote by hand", preserved)
+        self.assertIn("GENERATED from the memory ledger", self.projection())
 
 
 class TestSelfHeal(WrapperTest):

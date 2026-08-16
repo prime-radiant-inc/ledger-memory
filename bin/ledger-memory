@@ -3,7 +3,7 @@
 
 Subcommands:
   save <name> -m "<hook>" [--evidence REF] [--no-evidence] [--body FILE]
-  retract <name> -m "wrong because <why>"
+  retract <name> -m "wrong because <why>" [--evidence REF] [--no-evidence]
   archive <name> [<name>...] [-m "<why>"]
   render
   drill <name>
@@ -28,6 +28,7 @@ AUTHOR = os.environ.get("LEDGER_MEMORY_AS") or (
     f"session-{os.environ['CLAUDE_CODE_SESSION_ID'][:8]}"
     if os.environ.get("CLAUDE_CODE_SESSION_ID") else "memory")
 NAG_LINES = 60
+PRESERVED = None  # set if a hand-written MEMORY.md got renamed aside; surfaced in JSON output
 
 
 def die(msg, code=1):
@@ -96,7 +97,24 @@ def bootstrap():
     _create()
 
 
+def _preserve_pre_ledger_memory_md():
+    """A hand-written MEMORY.md (no GENERATED marker) must never be silently
+    clobbered by the first render: rename it aside so the old index survives
+    for hand-migration, and note it so the caller can surface it."""
+    global PRESERVED
+    try:
+        with open(memory_md_path()) as f:
+            content = f.read()
+    except OSError:
+        return
+    if "GENERATED from the memory ledger" in content:
+        return
+    os.replace(memory_md_path(), memory_md_path() + ".pre-ledger")
+    PRESERVED = "MEMORY.md.pre-ledger"
+
+
 def _create():
+    _preserve_pre_ledger_memory_md()
     _, _, err = run("create", "memory",
                     "--scope", f"agent memory ({os.path.basename(MEMDIR.rstrip('/')) or 'project'})",
                     "--field", "status=current,retracted,archived", "--as", AUTHOR)
@@ -121,15 +139,17 @@ def chain_events():
 
 def key_history(events):
     """Group set-events by key: ever-retracted flag + last retraction text +
-    the last status event's (status, author)."""
+    last current-status claim text + the last status event's (status, author)."""
     hist = {}
     for e in events:
         if e.get("type") != "set" or "status" not in e.get("fields", {}):
             continue
-        h = hist.setdefault(e.get("key"), {"retraction": None, "last": None})
+        h = hist.setdefault(e.get("key"), {"retraction": None, "last_current": None, "last": None})
         status = e["fields"]["status"]
         if status == "retracted":
             h["retraction"] = sanitize(e.get("text", ""))
+        elif status == "current":
+            h["last_current"] = sanitize(e.get("text", ""))
         h["last"] = (status, e.get("author"))
     return hist
 
@@ -181,6 +201,8 @@ def render():
         "```",
         "A save is not finished until this file has re-rendered (the wrapper does it).",
         "If `ledger` or the wrapper is missing or erroring: tell the user and STOP.",
+        "Install ledger: curl -fsSL https://github.com/prime-radiant-inc/ledger/"
+        "releases/latest/download/install.sh | bash",
         f"store head: {head or 'none'}",
         "",
     ]
@@ -195,7 +217,8 @@ def render():
                 scar = f" [previously retracted: {hist[key]['retraction']}]"
             current.append(f"- **{key}** — {hook} ({age(r.get('ts'))}, by {r.get('by')}{ev}){scar}")
         elif val == "retracted":
-            retracted.append(f"- ~~{key}~~ retracted: {hook} ({age(r.get('ts'))})")
+            claim = hist.get(key, {}).get("last_current") or ""
+            retracted.append(f"- ~~{key}~~ retracted: \"{claim}\" — {hook} ({age(r.get('ts'))})")
 
     lines = header
     lines += ["## Facts", ""] + (current or ["(none yet)"])
@@ -237,6 +260,8 @@ def cmd_save(name, msg, evidence, no_evidence, body):
             die(f"saved, but body note failed: {nerr.get('message')}")
     render()
     out = {"ok": True, "saved": name, "id": (doc or {}).get("id")}
+    if PRESERVED:
+        out["preserved"] = PRESERVED
     if prior:
         note = f"replaced: \"{sanitize(prior.get('note',''))}\" ({age(prior.get('ts'))}, was {prior.get('value')})"
         last = hist.get(name, {}).get("last")
@@ -248,18 +273,26 @@ def cmd_save(name, msg, evidence, no_evidence, body):
     print(json.dumps(out, indent=1))
 
 
-def cmd_status_flip(name, status, msg):
+def cmd_status_flip(name, status, msg, evidence=None, no_evidence=False):
     bootstrap()
     _, rows = spine_rows()
     prior = next((r for r in rows if r.get("key") == name), None)
     if not prior:
         die(f"no memory named '{name}' (drill the projection's names, or save it first)", 4)
-    ev_args = ["--evidence", prior["evidence"][0]] if prior.get("evidence") else []
+    if evidence:
+        ev_args = ["--evidence", evidence]
+    elif prior.get("evidence") and not no_evidence:
+        ev_args = ["--evidence", prior["evidence"][0]]  # carry forward (spec rev 4)
+    else:
+        ev_args = []
     _, doc, err = run("set", name, f"status={status}", "-m", msg, "--as", AUTHOR, *ev_args)
     if err:
         die(f"{status} failed: {err.get('message')}")
     render()
-    print(json.dumps({"ok": True, status: name, "id": (doc or {}).get("id")}, indent=1))
+    out = {"ok": True, status: name, "id": (doc or {}).get("id")}
+    if PRESERVED:
+        out["preserved"] = PRESERVED
+    print(json.dumps(out, indent=1))
 
 
 def cmd_archive(names, msg):
@@ -278,7 +311,10 @@ def cmd_archive(names, msg):
             die(f"archive failed: {err.get('message')}")
         ids.append((doc or {}).get("id"))
     render()
-    print(json.dumps({"ok": True, "archived": names, "id": ids}, indent=1))
+    out = {"ok": True, "archived": names, "id": ids}
+    if PRESERVED:
+        out["preserved"] = PRESERVED
+    print(json.dumps(out, indent=1))
 
 
 def cmd_drill(name):
@@ -308,12 +344,19 @@ def main():
         if name in rest:
             i = rest.index(name)
             rest.pop(i)
-            return True if boolean else rest.pop(i)
+            if boolean:
+                return True
+            if i >= len(rest):
+                die(f"usage: {name} requires a value", 4)
+            return rest.pop(i)
         return False if boolean else None
 
     if cmd == "render":
         render()
-        print(json.dumps({"ok": True, "rendered": memory_md_path()}, indent=1))
+        out = {"ok": True, "rendered": memory_md_path()}
+        if PRESERVED:
+            out["preserved"] = PRESERVED
+        print(json.dumps(out, indent=1))
     elif cmd == "save":
         msg = flag("-m")
         evidence = flag("--evidence")
@@ -324,9 +367,12 @@ def main():
         cmd_save(rest[0], msg, evidence, no_ev, body)
     elif cmd == "retract":
         msg = flag("-m")
+        evidence = flag("--evidence")
+        no_ev = flag("--no-evidence", boolean=True)
         if not rest or not msg:
-            die("usage: ledger-memory retract <name> -m \"wrong because <why>\"", 4)
-        cmd_status_flip(rest[0], "retracted", msg)
+            die("usage: ledger-memory retract <name> -m \"wrong because <why>\" "
+                "[--evidence REF] [--no-evidence]", 4)
+        cmd_status_flip(rest[0], "retracted", msg, evidence, no_ev)
     elif cmd == "archive":
         msg = flag("-m") or "archived (stale, not wrong)"
         if not rest:

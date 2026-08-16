@@ -40,6 +40,15 @@ class TestSessionStart(unittest.TestCase):
                      {"transcript_path": self.transcript, "source": "startup"})
         self.assertIn("damaged", p.stdout)          # surfaced as context, not swallowed
 
+    def test_any_nonzero_rc_surfaces_as_warning(self):
+        # no `ledger` reachable on PATH, and LEDGER_BIN unset: any failure
+        # (not just the damaged-store exit code 2) must reach the agent
+        env = {"PATH": "/usr/bin:/bin"}
+        p = run_hook("session-start.sh",
+                     {"transcript_path": self.transcript, "source": "startup"}, env=env)
+        self.assertIn("MEMORY WARNING", p.stdout)
+        self.assertIn("install.sh", p.stdout)        # the install hint
+
 
 class TestPreToolGuard(unittest.TestCase):
     def setUp(self):

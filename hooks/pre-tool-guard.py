@@ -10,6 +10,11 @@ tells the agent to use the wrapper), and the deny reason here exists to
 educate, not to guarantee containment. Closing the relative-path gap would
 need real shell parsing / cwd tracking, which isn't worth the complexity for
 a nudge whose backstop is documentation, not enforcement.
+
+The same looseness also produces false positives: a command that merely
+mentions the memory dir's path anywhere and separately contains a write verb
+anywhere is denied even when the write targets something else entirely.
+Accepted for the same reason — this is a fail-open nudge, not enforcement.
 """
 import json
 import os

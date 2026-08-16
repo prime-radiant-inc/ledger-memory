@@ -13,8 +13,9 @@ export LEDGER_MEMORY_DIR="$(dirname "$transcript")/memory"
 mkdir -p "$LEDGER_MEMORY_DIR"
 out="$(python3 "$here/../bin/ledger-memory" render 2>&1)"
 rc=$?
-if [ $rc -eq 2 ]; then
-    # damaged store: this must reach the agent, not vanish into a log
+if [ $rc -ne 0 ]; then
+    # any failure (damaged store, missing binary, etc.) must reach the
+    # agent, not vanish into a log
     printf 'MEMORY WARNING: %s\n' "$out"
 elif [ "$source_kind" = "compact" ]; then
     printf 'Compaction just ran. If working knowledge was lost from the summary, save what you still know: ledger-memory save <name> -m "<fact>" (see MEMORY.md header).\n'
