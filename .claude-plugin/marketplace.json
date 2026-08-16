@@ -5,7 +5,7 @@
     {
       "name": "ledger-memory",
       "description": "Ledger-backed persistent memory for coding agents: append-only facts with retraction vaccines, scars, and a generated MEMORY.md projection",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "source": {
         "source": "url",
         "url": "https://github.com/prime-radiant-inc/ledger-memory"

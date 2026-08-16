@@ -6,28 +6,28 @@
       "sha256": "8e9ac10eec800eb22d723907091b4e2071b8eb2302201f87d1d9b9271f713e2d"
     },
     ".claude-plugin/marketplace.json": {
-      "sha256": "bddf238a063754bf1fe80efbc1d3ae71c8e031669185c75a48fe2b1acf9700d5"
+      "sha256": "f0f2e524e85490e27083e2aec665c5ff6d29263a57dccd45f765a45d8a5b8472"
     },
     ".claude-plugin/plugin.json": {
-      "sha256": "259981fa6adfc6c40c2215058fef4eadc01d9112049d8d28b12215d9acec74cd"
+      "sha256": "f8131af0a12488f70614159ef5a4bd4f6fea1425ccaecbabb8ab83bad4888ea9"
     },
     ".codex-plugin/plugin.json": {
-      "sha256": "e7b369cc254991966b232b0da2ac1de628a8a4309c83b0612615a3c34d635cb2"
+      "sha256": "ead7fee79e593c7fca7c647d94ce2584ca48fcd7e5bd6a9c5333f6630ab1498b"
     },
     ".cursor-plugin/plugin.json": {
-      "sha256": "524f25f9ab7f83af03efd9fc47075b33b667988e50749d9e4d97eef1129912cd"
+      "sha256": "009876e72201a340ed3bcb9deedf5ac69e857f2df33f17c29591f7faf93f8092"
     },
     ".devin-plugin/plugin.json": {
-      "sha256": "44213e71aa7fc2fa7bf294ef087b90255eba41564788236c116de67ed7417d19"
+      "sha256": "519356d6b83f5af2faa5da2e073a1e88d3aab037a470342672b7f42b1151c427"
     },
     ".hermes-plugin/__init__.py": {
       "sha256": "42d0e8def33127402effbd2bacb2b1d39b941c6eaeb5d44959cbb875eb3ed18a"
     },
     ".hermes-plugin/plugin.yaml": {
-      "sha256": "bd976597f0e8fa990cf90c6923300bb0b3233e5be52d1d8736713790d720444d"
+      "sha256": "87f4a5da7a2d643db7a8a5144df566f91014c511a5f0e07581989bd54a1ad3c4"
     },
     ".kimi-plugin/plugin.json": {
-      "sha256": "d90b0b6bba25050466e02d1a69347b31a3fa6fc014d5e5215d6cf41f28572fe1"
+      "sha256": "75990461b1a38247c2e35e11a4eeb5d3ca58ba9664553bcdcc5c858d3bad14e3"
     },
     ".opencode/plugins/ledger-memory.js": {
       "sha256": "46df35a6b0ddb73fee6070ba3fba6d7f6656a529e92d52cc2c28e273df1dfbc2"
@@ -75,7 +75,7 @@
       "sha256": "d0d57f1480b2b13e5a107b8983be837ecf2402e988965868b30e1760c0588e51"
     },
     "gemini-extension.json": {
-      "sha256": "4300c372a9e36f7622c9cc91f2eb306245f7095589389efa99901a4a4f2218c6"
+      "sha256": "ae4c88d491fa400ba408d973fcbad14c72bb67bba95c2d670eeef31b385da088"
     },
     "hooks/everyharness/hooks-cursor.json": {
       "sha256": "0d37a9ef948e1d41327df1d96b515459bc67b5e31f01166fcf79ed798d57cffe"
@@ -89,10 +89,10 @@
       "executable": true
     },
     "package.json": {
-      "sha256": "b4b129856dfc6c0a16544bee7ccfb263f6720de96e26ed441c0e0cd6106eba5c"
+      "sha256": "f20b9bde00bbc0b4982dad896d9c8b56301c19db6aafaf25ca9670f11a7bd6dd"
     },
     "plugin.json": {
-      "sha256": "0c100e80fba0e8cfa377481ab0c6c449dbdc8204ac62864515570732f95f4eab"
+      "sha256": "24f740daa44ed71a8ebf76448392de32f0cd26fcc1a59f0e85a3d7e00454979a"
     }
   }
 }
