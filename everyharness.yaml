@@ -1,0 +1,31 @@
+name: ledger-memory
+version: 0.1.0
+description: "Ledger-backed persistent memory for coding agents: append-only facts
+  with retraction vaccines, scars, and a generated MEMORY.md projection"
+author:
+  name: Jesse Vincent
+  email: jesse@fsck.com
+license: MIT
+repository: https://github.com/prime-radiant-inc/ledger-memory
+homepage: https://github.com/prime-radiant-inc/ledger-memory
+keywords:
+  - memory
+  - ledger
+  - persistence
+  - agent-state
+bootstrap: { skill: ledger-memory }
+
+harnesses:
+  claude-code:
+    # hand-crafted hooks are the product here: SessionStart render/bootstrap
+    # (incl. the compact-matcher save reminder) and the PreToolUse write
+    # guard. everyharness must not replace them with a generated bootstrap
+    # hook.
+    hooks: own
+
+marketplace:
+  name: ledger-memory-market
+  description: Ledger-backed persistent memory for coding agents
+  source: repository
+  category: Developer Tools
+  tags: [memory, ledger, persistence]

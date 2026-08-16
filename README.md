@@ -28,8 +28,27 @@ brew install prime-radiant-inc/tap/ledger
 
 ## Install
 
-Install like any Claude Code plugin — via your plugin marketplace or
-`/plugin` (see the Claude Code docs).
+This repo is its own plugin marketplace (`ledger-memory-market`). In Claude
+Code: `/plugin marketplace add prime-radiant-inc/ledger-memory`, then
+`/plugin install ledger-memory@ledger-memory-market`. Other harnesses:
+
+<!-- everyharness:install:start -->
+
+| Harness | Install |
+|---|---|
+| Claude Code | see docs/install/claude-code.md |
+| Cursor | see docs/install/cursor.md |
+| Codex | see docs/install/codex.md |
+| Devin CLI | see docs/install/devin.md |
+| Kimi Code | see docs/install/kimi.md |
+| Gemini CLI | see docs/install/gemini.md |
+| OpenCode | see docs/install/opencode.md |
+| Pi | see docs/install/pi.md |
+| Hermes Agent | see docs/install/hermes.md |
+| Agent Plugins 1.0 clients | see docs/install/agent-plugins-1.0.md |
+| Factory Droid / Grok / Copilot (marketplace descriptor) | see docs/install/agents-marketplace.md |
+
+<!-- everyharness:install:end -->
 
 ## How it works
 

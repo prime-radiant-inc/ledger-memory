@@ -23,3 +23,17 @@ jobs:
           git config --global user.email ci@example.invalid
       - name: Run tests
         run: python3 -m unittest discover -s tests -v
+
+  everyharness-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Build everyharness
+        run: |
+          git clone --depth 1 https://github.com/prime-radiant-inc/everyharness /tmp/everyharness
+          cd /tmp/everyharness && npm ci --silent && npm run build --silent
+      - name: Validate generated manifests
+        run: node /tmp/everyharness/dist/cli.js validate

@@ -1,0 +1,20 @@
+{
+  "name": "ledger-memory-dev",
+  "interface": {
+    "displayName": "ledger-memory"
+  },
+  "plugins": [
+    {
+      "name": "ledger-memory",
+      "source": {
+        "source": "url",
+        "url": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

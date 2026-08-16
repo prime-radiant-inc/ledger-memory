@@ -9,10 +9,21 @@
   "license": "MIT",
   "repository": "https://github.com/prime-radiant-inc/ledger-memory",
   "homepage": "https://github.com/prime-radiant-inc/ledger-memory",
+  "type": "module",
+  "main": "./.opencode/plugins/ledger-memory.js",
+  "pi": {
+    "extensions": [
+      "./.pi/extensions/ledger-memory.ts"
+    ],
+    "skills": [
+      "./skills"
+    ]
+  },
   "keywords": [
     "memory",
     "ledger",
     "persistence",
-    "agent-state"
+    "agent-state",
+    "pi-package"
   ]
 }
