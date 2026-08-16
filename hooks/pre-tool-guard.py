@@ -1,5 +1,16 @@
 #!/usr/bin/env python3
-"""PreToolUse guard: the memory ledger's only write path is the wrapper."""
+"""PreToolUse guard: the memory ledger's only write path is the wrapper.
+
+Known limitation (accepted, no behavior change intended): the match below is
+a substring check against the memory dir's absolute path in the command
+text. It misses writes that reach the same store via a relative path or a
+prior `cd`, e.g. `cd memory && ledger set ...`. This guard is a best-effort
+nudge, not a sandbox — the primary defense is the MEMORY.md header (which
+tells the agent to use the wrapper), and the deny reason here exists to
+educate, not to guarantee containment. Closing the relative-path gap would
+need real shell parsing / cwd tracking, which isn't worth the complexity for
+a nudge whose backstop is documentation, not enforcement.
+"""
 import json
 import os
 import re
@@ -7,21 +18,24 @@ import sys
 
 WRITE_VERBS = r"(set|note|vocab|close|rollup|import|create)"
 
-payload = json.load(sys.stdin)
-if payload.get("tool_name") != "Bash":
-    sys.exit(0)
-cmd = payload.get("tool_input", {}).get("command", "")
-transcript = payload.get("transcript_path", "")
-memdir = os.path.join(os.path.dirname(transcript), "memory") if transcript else ""
+try:
+    payload = json.load(sys.stdin)
+    if not isinstance(payload, dict) or payload.get("tool_name") != "Bash":
+        sys.exit(0)
+    cmd = payload.get("tool_input", {}).get("command", "")
+    transcript = payload.get("transcript_path", "")
+    memdir = os.path.join(os.path.dirname(transcript), "memory") if transcript else ""
 
-if memdir and memdir in cmd and re.search(rf"\bledger\b(?:\s+\S+)*?\s+{WRITE_VERBS}\b", cmd) \
-        and "ledger-memory" not in cmd:
-    print(json.dumps({"hookSpecificOutput": {
-        "hookEventName": "PreToolUse",
-        "permissionDecision": "deny",
-        "permissionDecisionReason":
-            "Raw ledger writes to the memory store bypass rendering, scars, and "
-            "evidence carry-forward. Use the wrapper: ledger-memory save/retract/"
-            "archive (see MEMORY.md header). Reads (show/notes/tail/status) are fine.",
-    }}))
+    if memdir and memdir in cmd and re.search(rf"\bledger\b(?:\s+\S+)*?\s+{WRITE_VERBS}\b", cmd) \
+            and "ledger-memory" not in cmd:
+        print(json.dumps({"hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason":
+                "Raw ledger writes to the memory store bypass rendering, scars, and "
+                "evidence carry-forward. Use the wrapper: ledger-memory save/retract/"
+                "archive (see MEMORY.md header). Reads (show/notes/tail/status) are fine.",
+        }}))
+except Exception:
+    pass  # fail open: a PreToolUse hook must never crash and block the tool
 sys.exit(0)

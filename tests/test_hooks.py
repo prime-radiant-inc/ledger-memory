@@ -71,3 +71,10 @@ class TestPreToolGuard(unittest.TestCase):
                     "ls -la"):
             p = run_hook("pre-tool-guard.py", self.payload(cmd))
             self.assertEqual(p.stdout.strip(), "", cmd)  # silence = allow
+
+    def test_malformed_stdin_fails_open_silently(self):
+        for garbage in ("not json", "", "[]", '"x"'):
+            p = subprocess.run([os.path.join(HOOKS, "pre-tool-guard.py")],
+                               input=garbage, capture_output=True, text=True)
+            self.assertEqual(p.returncode, 0, garbage)
+            self.assertEqual(p.stdout.strip(), "", garbage)
