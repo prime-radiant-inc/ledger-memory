@@ -108,6 +108,54 @@ class TestPreToolGuard(unittest.TestCase):
                           "transcript_path": os.path.join(proj, "x.jsonl")})
             self.assertEqual(p.stdout.strip(), "", cmd)
 
+
+
+    def test_denies_quoted_and_nested_raw_writes(self):
+        # hotfix-review reproductions: quoting/nesting must not elude the deny
+        memdir = self.memdir
+        for cmd in ('"ledger" set probe status=current -m t --store ' + memdir,
+                    'eval "ledger set probe status=current -m t --store ' + memdir + '"',
+                    "bash -c 'ledger set probe status=current -m t --store " + memdir + "'",
+                    "`ledger set probe status=current -m t --store " + memdir + "`"):
+            p = run_hook("pre-tool-guard.py", self.payload(cmd))
+            doc = json.loads(p.stdout)
+            self.assertEqual(doc["hookSpecificOutput"]["permissionDecision"], "deny", cmd)
+
+    def test_wrapper_call_with_ledger_verb_in_message_is_allowed(self):
+        # regression from the 0.1.1 fix: dropping the allowlist blocked wrapper
+        # calls whose message text mentions a raw-write phrase
+        cmd = ('/x/bin/ledger-memory save probe -m '
+               '"context: user asked to ledger set this on entry" --store ' + self.memdir)
+        p = run_hook("pre-tool-guard.py", self.payload(cmd))
+        self.assertEqual(p.stdout.strip(), "", cmd)
+
+
+
+    def test_raw_write_mentioning_wrapper_name_in_message_is_denied(self):
+        # re-review finding: prose mention of "ledger-memory" in a raw write's
+        # own -m text must not vouch for it
+        for cmd in ('ledger set foo -m "note: switch to ledger-memory going forward" --store ' + self.memdir,
+                    'ledger note foo -m "see the ledger-memory docs for details" --store ' + self.memdir):
+            p = run_hook("pre-tool-guard.py", self.payload(cmd))
+            doc = json.loads(p.stdout)
+            self.assertEqual(doc["hookSpecificOutput"]["permissionDecision"], "deny", cmd)
+
+    def test_env_prefixed_wrapper_call_is_allowed(self):
+        cmd = ("LEDGER_MEMORY_DIR=" + self.memdir +
+               ' /x/bin/ledger-memory save k -m "will ledger set this later"')
+        p = run_hook("pre-tool-guard.py", self.payload(cmd))
+        self.assertEqual(p.stdout.strip(), "", cmd)
+
+
+
+    def test_multiline_wrapper_call_with_ledger_verb_in_message_is_allowed(self):
+        # newline is a statement separator: a wrapper call on its own line
+        # must vouch for itself even with a raw-write phrase in its message
+        cmd = ('echo hi\n/x/bin/ledger-memory save foo '
+               '-m "will ledger set this later" --store ' + self.memdir)
+        p = run_hook("pre-tool-guard.py", self.payload(cmd))
+        self.assertEqual(p.stdout.strip(), "", cmd)
+
     def test_malformed_stdin_fails_open_silently(self):
         for garbage in ("not json", "", "[]", '"x"'):
             p = subprocess.run([os.path.join(HOOKS, "pre-tool-guard.py")],
