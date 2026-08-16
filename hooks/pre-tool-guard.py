@@ -21,7 +21,14 @@ import os
 import re
 import sys
 
-WRITE_VERBS = r"(set|note|vocab|close|rollup|import|create)"
+# A raw write is the bare `ledger` binary (optionally path-qualified) followed
+# eventually by a write verb. The ledger token must end at whitespace so that
+# `ledger-memory save` — or any path merely *containing* "ledger-memory",
+# such as this very project's own store path — can never match. (Found live:
+# the old allowlist was `"ledger-memory" not in cmd`, which let every raw
+# write through for any project whose path contains that substring.)
+RAW_WRITE = re.compile(
+    r"(?:^|[\s;&|(])(?:\S*/)?ledger\s+(?:\S+\s+)*?(?:set|note|vocab|close|rollup|import|create)\b")
 
 try:
     payload = json.load(sys.stdin)
@@ -31,8 +38,7 @@ try:
     transcript = payload.get("transcript_path", "")
     memdir = os.path.join(os.path.dirname(transcript), "memory") if transcript else ""
 
-    if memdir and memdir in cmd and re.search(rf"\bledger\b(?:\s+\S+)*?\s+{WRITE_VERBS}\b", cmd) \
-            and "ledger-memory" not in cmd:
+    if memdir and memdir in cmd and RAW_WRITE.search(cmd):
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "PreToolUse",
             "permissionDecision": "deny",

@@ -81,6 +81,33 @@ class TestPreToolGuard(unittest.TestCase):
             p = run_hook("pre-tool-guard.py", self.payload(cmd))
             self.assertEqual(p.stdout.strip(), "", cmd)  # silence = allow
 
+
+
+    def test_denies_raw_write_when_project_path_contains_ledger_memory(self):
+        # the live-found bug: a store path containing "ledger-memory" (e.g. the
+        # ledger-memory repo's own project dir) defeated the old allowlist
+        proj = os.path.join(self.proj, "-Users-x-git-ledger-memory")
+        memdir = os.path.join(proj, "memory")
+        os.makedirs(memdir)
+        p = run_hook("pre-tool-guard.py",
+                     {"tool_name": "Bash",
+                      "tool_input": {"command": f"ledger set probe status=current -m test --store {memdir}"},
+                      "transcript_path": os.path.join(proj, "x.jsonl")})
+        doc = json.loads(p.stdout)
+        self.assertEqual(doc["hookSpecificOutput"]["permissionDecision"], "deny")
+
+    def test_allows_wrapper_even_under_ledger_memory_path(self):
+        proj = os.path.join(self.proj, "-Users-x-git-ledger-memory")
+        memdir = os.path.join(proj, "memory")
+        os.makedirs(memdir)
+        for cmd in (f"/x/bin/ledger-memory save k -m hi",
+                    f"LEDGER_MEMORY_DIR={memdir} /x/bin/ledger-memory save k -m hi",
+                    f"ledger-memory retract k -m 'wrong because {memdir}'"):
+            p = run_hook("pre-tool-guard.py",
+                         {"tool_name": "Bash", "tool_input": {"command": cmd},
+                          "transcript_path": os.path.join(proj, "x.jsonl")})
+            self.assertEqual(p.stdout.strip(), "", cmd)
+
     def test_malformed_stdin_fails_open_silently(self):
         for garbage in ("not json", "", "[]", '"x"'):
             p = subprocess.run([os.path.join(HOOKS, "pre-tool-guard.py")],
