@@ -2,7 +2,7 @@
   "name": "ledger-memory",
   "displayName": "ledger-memory",
   "description": "Ledger-backed persistent memory for coding agents: append-only facts with retraction vaccines, scars, and a generated MEMORY.md projection",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "author": {
     "name": "Jesse Vincent",
     "email": "jesse@fsck.com"

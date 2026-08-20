@@ -48,8 +48,10 @@ BOUNDARY = r"(?:^|[\s;&|(\"'`])"
 CMD_START = r"(?:^|[;&|(`\n\r]|\$\()"
 WRAPPER_CALL = re.compile(
     rf"{CMD_START}\s*(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*(?:\S*/)?ledger-memory[\"']?\s")
+# Both names stay denied: the tool is `chit` from v0.3.0, but `ledger`
+# binaries linger on machines and either one can write the store raw.
 RAW_WRITE = re.compile(
-    rf"{BOUNDARY}(?:\S*/)?ledger[\"']?\s+(?:\S+\s+)*?(?:set|note|vocab|close|rollup|import|create)\b")
+    rf"{BOUNDARY}(?:\S*/)?(?:ledger|chit)[\"']?\s+(?:\S+\s+)*?(?:set|note|vocab|close|rollup|import|create)\b")
 
 try:
     payload = json.load(sys.stdin)

@@ -73,6 +73,15 @@ class TestPreToolGuard(unittest.TestCase):
         self.assertEqual(decision, "deny")
         self.assertIn("ledger-memory", reason)      # redirect names the wrapper
 
+    def test_denies_raw_chit_write_to_memory_store(self):
+        # The tool renamed to chit at v0.3.0; the renamed binary must not
+        # walk past a guard that matches the old name only.
+        p = run_hook("pre-tool-guard.py",
+                     self.payload(f"chit set foo status=current -m x --store {self.memdir}"))
+        decision, reason = self.deny_reason(p)
+        self.assertEqual(decision, "deny")
+        self.assertIn("ledger-memory", reason)
+
     def test_allows_reads_and_unrelated_commands(self):
         for cmd in (f"ledger show --store {self.memdir}",
                     f"ledger tail --raw --store {self.memdir}",

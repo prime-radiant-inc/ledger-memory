@@ -18,13 +18,16 @@ Timestamps in drill output are UTC.
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
 from datetime import datetime, timezone
 
 MEMDIR = os.environ.get("LEDGER_MEMORY_DIR", "")
-LEDGER = os.environ.get("LEDGER_BIN", "ledger")
+# The tool was renamed chit at v0.3.0; older installs still ship `ledger`.
+# Explicit LEDGER_BIN wins, then whichever binary this machine has.
+LEDGER = os.environ.get("LEDGER_BIN") or ("chit" if shutil.which("chit") else "ledger")
 AUTHOR = os.environ.get("LEDGER_MEMORY_AS") or (
     f"session-{os.environ['CLAUDE_CODE_SESSION_ID'][:8]}"
     if os.environ.get("CLAUDE_CODE_SESSION_ID") else "memory")
